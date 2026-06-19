@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SuiteFlow - Hotel Management Hub</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    /* Hidden scrollbar utilities */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+  <!-- ================= AUTHENTICATION / LOGIN PASSCODE GATEWAY ================= -->
+  <div id="login-gateway" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 p-4 transition-all duration-300">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-100 flex flex-col items-center">
+      <div class="bg-indigo-600 p-4 rounded-2xl text-white mb-4 shadow-lg shadow-indigo-100">
+        <i data-lucide="hotel" class="w-8 h-8"></i>
+      </div>
+      <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">SuiteFlow India</h2>
+      <p class="text-sm text-slate-400 mt-1 text-center font-medium">Please enter your Staff or Admin Passcode to unlock the operational console.</p>
+      
+      <!-- Passcode Input Indicator -->
+      <div class="flex space-x-3 my-8" id="passcode-dots">
+        <div class="w-4 h-4 rounded-full bg-slate-200 transition-colors duration-200"></div>
+        <div class="w-4 h-4 rounded-full bg-slate-200 transition-colors duration-200"></div>
+        <div class="w-4 h-4 rounded-full bg-slate-200 transition-colors duration-200"></div>
+        <div class="w-4 h-4 rounded-full bg-slate-200 transition-colors duration-200"></div>
+      </div>
+
+      <div class="text-center text-sm font-semibold text-rose-500 mb-4 h-5" id="login-error-msg"></div>
+
+      <!-- Quick Tapping Numeric Passkey Pad -->
+      <div class="grid grid-cols-3 gap-4 w-full max-w-[280px]">
+        <button onclick="pressPin('1')" class="h-14 bg-slate-50 active:bg-indigo-50 hover:bg-slate-100 text-slate-800 font-bold text-xl rounded-2xl transition duration-150 focus:outline-none">1</button>
+        <button onclick="pressPin('2')" class="h-14 bg-slate-50 active:bg-indigo-50 hover:bg-slate-100 text-slate-800 font-bold text-xl rounded-2xl transition duration-150 focus:outline-none">2</button>
+        <button onclick="pressPin('3')" class="h-14 bg-slate-50 active:bg-indigo-50 hover:bg-slate-100 text-slate-800 font-bold text-xl rounded-2xl transition duration-150 focus:outline-none">3</button>
+        <button onclick="pressPin('4')" class="h-14 bg-slate-50 active:bg-indigo-50 hover:bg-slate-100 text-slate-800 font-bold text-xl rounded-2xl transition duration-150 focus:outline-none">4</button>
+        <button onclick="pressPin('5')" class="h-14 bg-slate-50 active:bg-indigo-50 hover:bg-slate-100 text-slate-800 font-bold text-xl rounded-2xl transition duration-150 focus:outline-none">5</button>
+        <button onclick="pressPin('6')" class="h-14 bg-slate-50 active:bg-indigo-50 hover:bg-slate-100 text-slate-800 font-bold text-xl rounded-2xl transition duration-150 focus:outline-none">6</button>
+        <button onclick="pressPin('7')" class="h-14 bg-slate-50 active:bg-indigo-50 hover:bg-slate-100 text-slate-800 font-bold text-xl rounded-2xl transition duration-150 focus:outline-none">7</button>
+        <button onclick="pressPin('8')" class="h-14 bg-slate-50 active:bg-indigo-50 hover:bg-slate-100 text-slate-800 font-bold text-xl rounded-2xl transition duration-150 focus:outline-none">8</button>
+        <button onclick="pressPin('9')" class="h-14 bg-slate-50 active:bg-indigo-50 hover:bg-slate-100 text-slate-800 font-bold text-xl rounded-2xl transition duration-150 focus:outline-none">9</button>
+        <button onclick="clearPin()" class="h-14 bg-rose-50 active:bg-rose-100 hover:bg-rose-100 text-rose-600 font-semibold text-sm rounded-2xl transition duration-150 focus:outline-none">Clear</button>
+        <button onclick="pressPin('0')" class="h-14 bg-slate-50 active:bg-indigo-50 hover:bg-slate-100 text-slate-800 font-bold text-xl rounded-2xl transition duration-150 focus:outline-none">0</button>
+        <button onclick="verifyPin()" class="h-14 bg-indigo-600 active:bg-indigo-700 hover:bg-indigo-700 text-white font-semibold text-sm rounded-2xl transition duration-150 focus:outline-none flex items-center justify-center shadow-lg shadow-indigo-100">
+          <i data-lucide="arrow-right" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="mt-8 text-slate-400 text-[11px] text-center">
+        <p>Default Access: Staff PIN is <span class="font-bold">2026</span> | Admin PIN is <span class="font-bold">8888</span></p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= MAIN APP CONTAINER (HIDDEN UNTIL AUTH) ================= -->
+  <div id="main-app" class="hidden flex-col flex-grow">
+    
+    <!-- Premium Workspace Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16 items-center">
+          
+          <!-- Logo Brand -->
+          <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 p-2 rounded-xl text-white">
+              <i data-lucide="hotel" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <span class="text-lg font-bold tracking-tight text-slate-900">SuiteFlow</span>
+              <span id="role-badge" class="ml-2 text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-bold border border-emerald-100 uppercase">Staff View</span>
+            </div>
+          </div>
+
+          <!-- Desktop/Tablet Nav Navigation Controls -->
+          <div class="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar max-w-full">
+            <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition bg-indigo-50 text-indigo-600">
+              <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+              <span>Dashboard</span>
+            </button>
+            <button onclick="switchTab('bookings')" id="btn-bookings" class="tab-btn flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-600 hover:bg-slate-100">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+              <span>Bookings</span>
+            </button>
+            <button onclick="switchTab('expenses')" id="btn-expenses" class="tab-btn flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-600 hover:bg-slate-100">
+              <i data-lucide="receipt" class="w-4 h-4"></i>
+              <span>Expenses</span>
+            </button>
+            <button onclick="switchTab('handovers')" id="btn-handovers" class="tab-btn flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-600 hover:bg-slate-100">
+              <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+              <span>Handover Log</span>
+            </button>
+            <button onclick="switchTab('settings')" id="btn-settings" class="tab-btn hidden flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition text-slate-600 hover:bg-slate-100">
+              <i data-lucide="settings" class="w-4 h-4"></i>
+              <span>Settings</span>
+            </button>
+            
+            <span class="w-[1px] h-6 bg-slate-200 self-center mx-1"></span>
+
+            <button onclick="logout()" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Logout system">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Global Toast Notification Center -->
+    <div id="toast-container" class="fixed top-20 right-4 z-50 max-w-sm space-y-2 pointer-events-none"></div>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      
+      <!-- ==================== TAB 1: OPERATIONAL MAIN DASHBOARD ==================== -->
+      <div id="section-dashboard" class="tab-content">
+        
+        <!-- Live Counters -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+              <i data-lucide="key" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-[11px] uppercase tracking-wider font-bold text-slate-400">Occupied Rooms</p>
+              <h3 id="m-active-checkins" class="text-2xl font-extrabold text-slate-900">0</h3>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+              <i data-lucide="wallet" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-[11px] uppercase tracking-wider font-bold text-slate-400">Total Bookings Revenue</p>
+              <h3 id="m-total-earnings" class="text-2xl font-extrabold text-slate-900">₹0.00</h3>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="p-3 bg-rose-50 text-rose-600 rounded-xl">
+              <i data-lucide="trending-down" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-[11px] uppercase tracking-wider font-bold text-slate-400">Daily Expenses</p>
+              <h3 id="m-total-expenses" class="text-2xl font-extrabold text-slate-900">₹0.00</h3>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+              <i data-lucide="coins" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-[11px] uppercase tracking-wider font-bold text-slate-400">Net Business Position</p>
+              <h3 id="m-net-profit" class="text-2xl font-extrabold text-slate-900">₹0.00</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 1: Interactive Room Cleaning Statuses -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-8">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900 tracking-tight flex items-center space-x-2">
+                <i data-lucide="bed-double" class="w-5 h-5 text-indigo-600"></i>
+                <span>Live Housekeeping & Rooms Grid</span>
+              </h2>
+              <p class="text-xs text-slate-400">Monitor and update status of individual rooms. Ensure rooms are flagged ready for new entries.</p>
+            </div>
+            <div class="flex space-x-4 text-xs font-semibold">
+              <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span class="text-slate-500">Ready</span></span>
+              <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span class="text-slate-500">Occupied</span></span>
+              <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span><span class="text-slate-500">Dirty</span></span>
+            </div>
+          </div>
+
+          <!-- Room Status Blocks -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4" id="rooms-grid">
+            <!-- Populated dynamically via controller state -->
+          </div>
+        </div>
+
+        <!-- Row 2: WhatsApp Intelligent Copy Parser & Add Booking Form -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-1">
+            <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center space-x-2">
+              <i data-lucide="phone-forwarded" class="w-5 h-5 text-indigo-600"></i>
+              <span>WhatsApp Intake Parser</span>
+            </h2>
+            <div class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/50 mb-4">
+              <label class="block text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1">Paste WhatsApp Msg / Text Here</label>
+              <textarea id="wa-paste-area" rows="3" oninput="parseWhatsAppText()" class="w-full px-2.5 py-1.5 text-xs bg-white border border-indigo-200 rounded-lg text-slate-900 focus:outline-none focus:border-indigo-500 resize-none" placeholder="Paste e.g.: Guest: Amit Patel, Checkin: 20 June, Checkout: 24 June, Note: extra bed needed"></textarea>
+              <p class="text-[10px] text-indigo-500 mt-1 font-medium">Automatic Regex searches patterns & populates the formal form below.</p>
+            </div>
+
+            <form id="booking-form" onsubmit="handleBookingSubmit(event)" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Guest Full Name *</label>
+                <input type="text" id="b-guest" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition" placeholder="Rahul Kumar">
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Check-In *</label>
+                  <input type="date" id="b-checkin" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Check-Out *</label>
+                  <input type="date" id="b-checkout" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Company / Source (Optional)</label>
+                <input type="text" id="b-company" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition" placeholder="e.g., Booking.com, Local Corporates">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Special Notes / Room Requests</label>
+                <textarea id="b-note" rows="2" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition resize-none" placeholder="Water bottles, late checkout etc."></textarea>
+              </div>
+              <button type="submit" id="btn-save-booking" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-xl transition shadow-md flex items-center justify-center space-x-2">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                <span>Confirm Live Registration</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Real-time Active Guest List -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2 flex flex-col min-h-[400px]">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                <i data-lucide="users" class="w-5 h-5 text-indigo-600"></i>
+                <span>Active Front-Desk In-house Guest List</span>
+              </h2>
+              <button onclick="loadAllData()" class="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              </button>
+            </div>
+            
+            <!-- Loading indicator overlay -->
+            <div id="loader-dashboard" class="flex-grow flex flex-col items-center justify-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div>
+              <p class="text-sm text-slate-500">Syncing live databases...</p>
+            </div>
+
+            <!-- Active Table Content -->
+            <div id="dashboard-bookings-container" class="hidden flex-grow overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="border-b border-slate-100 text-slate-400 font-semibold">
+                    <th class="py-3 px-4">Guest Info</th>
+                    <th class="py-3 px-4">Duration</th>
+                    <th class="py-3 px-4">Notes</th>
+                    <th class="py-3 px-4 text-right">Instant Quick-Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-bookings-table" class="divide-y divide-slate-100">
+                  <!-- In-house rows added dynamically -->
+                </tbody>
+              </table>
+              
+              <!-- Empty list notification -->
+              <div id="dash-empty-state" class="hidden text-center py-12">
+                <p class="text-slate-400">All quiet! No guests are currently checked in.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ==================== TAB 2: HISTORICAL BOOKINGS & ARCHIVE ==================== -->
+      <div id="section-bookings" class="tab-content hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Historical Booking Registry</h2>
+            <p class="text-sm text-slate-500">View billing history, invoices, status, and generated ledger files.</p>
+          </div>
+          <div class="relative flex-grow sm:flex-none">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+            <input type="text" id="search-bookings" oninput="filterBookings()" class="pl-9 pr-4 py-2 w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:border-indigo-500" placeholder="Filter by name/company">
+          </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-400 font-semibold bg-slate-50/50">
+                <th class="py-3.5 px-4">Booking ID</th>
+                <th class="py-3.5 px-4">Guest Name</th>
+                <th class="py-3.5 px-4">Dates</th>
+                <th class="py-3.5 px-4">Source/Company</th>
+                <th class="py-3.5 px-4">Invoice Total (INR)</th>
+                <th class="py-3.5 px-4">Operational Status</th>
+              </tr>
+            </thead>
+            <tbody id="full-bookings-table" class="divide-y divide-slate-100">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 3: DAILY OPERATIONS LEDGER (EXPENSES) ==================== -->
+      <div id="section-expenses" class="tab-content hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          <!-- Expense Log Card -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit">
+            <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center space-x-2">
+              <i data-lucide="receipt-text" class="w-5 h-5 text-rose-500"></i>
+              <span>Log Daily Expense</span>
+            </h2>
+            <form id="expense-form" onsubmit="handleExpenseSubmit(event)" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Expense Date *</label>
+                <input type="date" id="e-date" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Category *</label>
+                <select id="e-category" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition">
+                  <option value="Laundry">Laundry & Linen</option>
+                  <option value="Groceries">Kitchen / Food Groceries</option>
+                  <option value="Housekeeping">Housekeeping Supplies</option>
+                  <option value="Utilities">Utilities (Water/Elec/WiFi)</option>
+                  <option value="Repairs">Maintenance & Repairs</option>
+                  <option value="Staff Wages">Staff Wages / Commision</option>
+                  <option value="Others">Others</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Amount Spent (INR) *</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-2.5 text-slate-400 text-sm font-medium">₹</span>
+                  <input type="number" step="0.01" min="0.01" id="e-amount" required class="w-full pl-7 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition" placeholder="0.00">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Description / Bill details</label>
+                <textarea id="e-description" rows="3" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition resize-none" placeholder="e.g., Bought fresh milk and breakfast fruits"></textarea>
+              </div>
+              <button type="submit" id="btn-save-expense" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2.5 px-4 rounded-xl transition shadow-md shadow-rose-100 flex items-center justify-center space-x-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Log Expense Entry</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Expense ledger Feed -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2 flex flex-col min-h-[400px]">
+            <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center space-x-2">
+              <i data-lucide="history" class="w-5 h-5 text-rose-500"></i>
+              <span>Expense Ledger Log (INR)</span>
+            </h2>
+            <div id="loader-expenses" class="flex-grow flex flex-col items-center justify-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-600 mb-2"></div>
+              <p class="text-sm text-slate-500">Retrieving operational expenses...</p>
+            </div>
+            <div id="expenses-container" class="hidden flex-grow overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="border-b border-slate-100 text-slate-400 font-semibold">
+                    <th class="py-3 px-4">Date</th>
+                    <th class="py-3 px-4">Category</th>
+                    <th class="py-3 px-4">Description</th>
+                    <th class="py-3 px-4 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="expenses-table" class="divide-y divide-slate-100">
+                  <!-- Appended dynamically -->
+                </tbody>
+              </table>
+              <div id="exp-empty-state" class="hidden text-center py-12">
+                <p class="text-slate-400">No expenses logged for this period.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ==================== TAB 4: DIGITAL SHIFT HANDOVER BOARD ==================== -->
+      <div id="section-handovers" class="tab-content hidden max-w-4xl mx-auto">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-8">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h2 class="text-xl font-bold text-slate-900">Shift Handover Logboard</h2>
+              <p class="text-sm text-slate-500">Ensure absolute synchronization between morning, evening, and night duty staff.</p>
+            </div>
+            <div class="bg-indigo-50 text-indigo-700 font-bold text-xs px-3 py-1.5 rounded-full flex items-center space-x-1">
+              <i data-lucide="info" class="w-4 h-4"></i>
+              <span>Shared Realtime Board</span>
+            </div>
+          </div>
+
+          <!-- Add Handover Notes -->
+          <form id="handover-form" onsubmit="handleHandoverSubmit(event)" class="space-y-4 mb-8">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Add Operational Update (Key transfers, Client requests, Unresolved tasks)*</label>
+              <textarea id="h-message" rows="3" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition resize-none" placeholder="e.g. Received Rs. 4,500 cash from Rm 103. Key of Rm 202 is with night guard. Room 104 guest requested a water bottle at 8 AM."></textarea>
+            </div>
+            <button type="submit" id="btn-save-handover" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-xl transition shadow-md flex items-center justify-center space-x-2 ml-auto">
+              <i data-lucide="send" class="w-4 h-4"></i>
+              <span>Post Handover Note</span>
+            </button>
+          </form>
+
+          <hr class="border-slate-100 my-6">
+
+          <!-- Notes Feed Container -->
+          <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Recent Shifts Operational Bulletins</h3>
+          <div id="handover-notes-feed" class="space-y-4">
+            <!-- Dynamically populated shift notes cards -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 5: BACKEND G-DRIVE SETUP CONFIGURATION ==================== -->
+      <div id="section-settings" class="tab-content hidden max-w-2xl mx-auto bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <h2 class="text-xl font-bold text-slate-900 mb-2 flex items-center space-x-2">
+          <i data-lucide="sliders" class="w-6 h-6 text-indigo-600"></i>
+          <span>PDF Template Settings (Admin Only)</span>
+        </h2>
+        <p class="text-sm text-slate-500 mb-6">Configure the mapping links connecting your custom dynamic Invoice Google Doc and target Google Drive PDF storage folders.</p>
+
+        <form id="settings-form" onsubmit="handleSettingsSubmit(event)" class="space-y-6">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Invoice Template (Google Doc ID)</label>
+            <input type="text" id="set-template-id" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition" placeholder="e.g. 1uK0HnNfN-P0x...">
+            <p class="text-xs text-slate-400 mt-1">Paste the specific long ID key within the URL path between `/d/` and `/edit` from your browser bar.</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Invoices Destination Folder ID (Google Drive)</label>
+            <input type="text" id="set-folder-id" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition" placeholder="e.g. 17a_d-L2Z...">
+            <p class="text-xs text-slate-400 mt-1">Enter folder path ID string parsed from your Google Drive destination folder URL.</p>
+          </div>
+
+          <button type="submit" id="btn-save-settings" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center space-x-2">
+            <i data-lucide="save" class="w-4 h-4"></i>
+            <span>Save Settings Configuration</span>
+          </button>
+        </form>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ==================== MODAL: EXECUTE CHECKOUT AND BILL INVOICING ==================== -->
+  <div id="checkout-modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full overflow-hidden transform scale-95 transition-transform duration-200">
+      <div class="bg-slate-50 border-b border-slate-150 px-6 py-4 flex justify-between items-center">
+        <h3 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+          <i data-lucide="clipboard-signature" class="w-5 h-5 text-indigo-600"></i>
+          <span>Process Guest Checkout</span>
+        </h3>
+        <button onclick="closeCheckoutModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form id="checkout-form" onsubmit="handleCheckoutSubmit(event)" class="p-6 space-y-4">
+        <input type="hidden" id="checkout-booking-id">
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Guest Name</label>
+          <p id="checkout-guest-name" class="text-base font-semibold text-slate-800 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">Loading...</p>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Room Charge (INR) *</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-slate-400 text-sm font-medium">₹</span>
+              <input type="number" step="0.01" min="0" id="checkout-room" required class="w-full pl-7 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500" placeholder="0.00">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Extra Charges (INR) *</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-slate-400 text-sm font-medium">₹</span>
+              <input type="number" step="0.01" min="0" id="checkout-extra" required class="w-full pl-7 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-indigo-500" placeholder="0.00">
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex space-x-3 justify-end">
+          <button type="button" onclick="closeCheckoutModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-xl transition">
+            Cancel
+          </button>
+          <button type="submit" id="btn-process-checkout" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition shadow-md flex items-center space-x-2">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            <span>Generate PDF Invoice</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 text-center text-slate-400 text-xs flex flex-col sm:flex-row justify-between items-center gap-2">
+      <div>SuiteFlow Hotel System running secure deployment pipeline with clasp | Git & Github actions CI/CD.</div>
+      <div class="font-bold text-indigo-500">Optimized for Hotel Operations India</div>
+    </div>
+  </footer>
+
+  <!-- CLIENT-SIDE CONTROLLER CODE -->
+  <script>
+    // Local In-Memory Mock Database
+    let mockDatabase = {
+      bookings: [
+        { ID: "BK-260619-2041", GuestName: "Samantha Sharma", CheckIn: "2026-06-19", CheckOut: "2026-06-22", Company: "Tata Consultancy Services", Note: "Prefers top floor, request early morning hot tea.", Status: "Checked-In", RoomCharge: 0, ExtraCharge: 0, TotalAmount: 0 },
+        { ID: "BK-260619-9023", GuestName: "Vikram Malhotra", CheckIn: "2026-06-18", CheckOut: "2026-06-20", Company: "N/A", Note: "Needs late night entry option. Visiting temples.", Status: "Checked-In", RoomCharge: 0, ExtraCharge: 0, TotalAmount: 0 },
+        { ID: "BK-260615-4421", GuestName: "David Watson", CheckIn: "2026-06-12", CheckOut: "2026-06-15", Company: "Booking.com", Note: "Requested airport drop.", Status: "Checked-Out-Invoiced", RoomCharge: 3000, ExtraCharge: 500, TotalAmount: 3500 }
+      ],
+      expenses: [
+        { Date: "2026-06-19", Category: "Laundry", Description: "Sheets and linens washing laundry service", Amount: 450 },
+        { Date: "2026-06-18", Category: "Groceries", Description: "Fresh coffee beans, organic fruits & dairy", Amount: 1120 },
+        { Date: "2026-06-15", Category: "Repairs", Description: "Replaced bathroom faucet leak in Room 102", Amount: 850 }
+      ],
+      settings: {
+        INVOICE_TEMPLATE_DOC_ID: "MOCK_DOC_ID_123456789",
+        INVOICES_FOLDER_ID: "MOCK_FOLDER_ID_987654321"
+      },
+      rooms: [
+        { number: "101", status: "ready" },
+        { number: "102", status: "occupied" },
+        { number: "103", status: "dirty" },
+        { number: "104", status: "ready" },
+        { number: "201", status: "occupied" },
+        { number: "202", status: "ready" },
+        { number: "203", status: "dirty" },
+        { number: "204", status: "ready" }
+      ],
+      handovers: [
+        { id: "HO-101", author: "Deepak (Morning Shift)", time: "2026-06-19 08:30 AM", message: "Collected ₹3500 cash from David Watson at Room 105 checkout. Faucet in Room 102 was repaired and verified by plumber. Handing over cash till with ₹10,200 balance." },
+        { id: "HO-102", author: "Rajesh (Night Shift)", time: "2026-06-18 09:15 PM", message: "Room 201 checked in late around 9 PM. Verified Aadhaar card physically. They requested morning milk tea at 7:00 AM sharp without sugar. Please coordinate with kitchen." }
+      ]
+    };
+
+    // Keep track of auth PIN states
+    let enteredPin = "";
+    let currentUserRole = null; // 'staff' or 'admin'
+
+    // Google Apps Script Fallback Environment setup
+    if (typeof google === 'undefined') {
+      window.google = {
+        script: {
+          run: {
+            withSuccessHandler: function(successCallback) {
+              const runMethods = {
+                getBookings: function() {
+                  setTimeout(() => successCallback(JSON.parse(JSON.stringify(mockDatabase.bookings))), 100);
+                  return runMethods;
+                },
+                getExpenses: function() {
+                  setTimeout(() => successCallback(JSON.parse(JSON.stringify(mockDatabase.expenses))), 100);
+                  return runMethods;
+                },
+                fetchSettings: function() {
+                  setTimeout(() => successCallback(JSON.parse(JSON.stringify(mockDatabase.settings))), 100);
+                  return runMethods;
+                },
+                getRooms: function() {
+                  setTimeout(() => successCallback(JSON.parse(JSON.stringify(mockDatabase.rooms))), 100);
+                  return runMethods;
+                },
+                updateRoom: function(num, stat) {
+                  setTimeout(() => {
+                    const room = mockDatabase.rooms.find(r => r.number === num);
+                    if (room) room.status = stat;
+                    successCallback({ success: true });
+                  }, 100);
+                  return runMethods;
+                },
+                getHandovers: function() {
+                  setTimeout(() => successCallback(JSON.parse(JSON.stringify(mockDatabase.handovers))), 100);
+                  return runMethods;
+                },
+                saveHandover: function(note) {
+                  setTimeout(() => {
+                    const authorName = currentUserRole === 'admin' ? 'Administrator' : 'Duty Staff';
+                    const timestamp = new Date().toLocaleString('en-IN', { hour12: true, timeZone: 'Asia/Kolkata' });
+                    mockDatabase.handovers.unshift({
+                      id: "HO-" + Math.floor(100 + Math.random() * 900),
+                      author: authorName,
+                      time: timestamp,
+                      message: note
+                    });
+                    successCallback({ success: true });
+                  }, 100);
+                  return runMethods;
+                },
+                getDashboardMetrics: function() {
+                  setTimeout(() => {
+                    const activeCheckins = mockDatabase.bookings.filter(b => b.Status === 'Checked-In').length;
+                    const totalEarnings = mockDatabase.bookings
+                      .filter(b => b.Status === 'Checked-Out-Invoiced')
+                      .reduce((sum, b) => sum + parseFloat(b.TotalAmount || 0), 0);
+                    const totalExpenses = mockDatabase.expenses
+                      .reduce((sum, e) => sum + parseFloat(e.Amount || 0), 0);
+                    
+                    successCallback({
+                      activeCheckins: activeCheckins,
+                      totalEarnings: totalEarnings.toFixed(2),
+                      totalExpenses: totalExpenses.toFixed(2),
+                      netProfit: (totalEarnings - totalExpenses).toFixed(2)
+                    });
+                  }, 100);
+                  return runMethods;
+                },
+                saveBooking: function(booking) {
+                  setTimeout(() => {
+                    const id = 'BK-' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
+                    mockDatabase.bookings.unshift({
+                      ID: id,
+                      GuestName: booking.guestName,
+                      CheckIn: booking.checkIn,
+                      CheckOut: booking.checkOut,
+                      Company: booking.company || 'N/A',
+                      Note: booking.note || '',
+                      Status: 'Checked-In',
+                      RoomCharge: 0,
+                      ExtraCharge: 0,
+                      TotalAmount: 0
+                    });
+                    successCallback({ success: true, message: 'Local booking simulated!', id: id });
+                  }, 100);
+                  return runMethods;
+                },
+                saveExpense: function(expense) {
+                  setTimeout(() => {
+                    mockDatabase.expenses.unshift({
+                      Date: expense.date,
+                      Category: expense.category,
+                      Description: expense.description || '',
+                      Amount: parseFloat(expense.amount)
+                    });
+                    successCallback({ success: true, message: 'Expense saved!' });
+                  }, 100);
+                  return runMethods;
+                },
+                checkoutAndGenerateInvoice: function(checkoutData) {
+                  setTimeout(() => {
+                    const idx = mockDatabase.bookings.findIndex(b => b.ID === checkoutData.id);
+                    if (idx !== -1) {
+                      const room = parseFloat(checkoutData.roomCharge);
+                      const extra = parseFloat(checkoutData.extraCharge);
+                      mockDatabase.bookings[idx].Status = 'Checked-Out-Invoiced';
+                      mockDatabase.bookings[idx].RoomCharge = room;
+                      mockDatabase.bookings[idx].ExtraCharge = extra;
+                      mockDatabase.bookings[idx].TotalAmount = room + extra;
+                      successCallback({
+                        success: true,
+                        message: 'Checkout logged. Auto-Invoicing completed!',
+                        pdfUrl: 'https://docs.google.com'
+                      });
+                    } else {
+                      successCallback({ success: false, error: 'Booking ID error.' });
+                    }
+                  }, 150);
+                  return runMethods;
+                },
+                saveSettings: function(settings) {
+                  setTimeout(() => {
+                    mockDatabase.settings = settings;
+                    successCallback({ success: true, message: 'Mock settings saved!' });
+                  }, 100);
+                  return runMethods;
+                }
+              };
+              return runMethods;
+            }
+          }
+        }
+      };
+    }
+
+    // Passcode validation
+    function pressPin(val) {
+      if (enteredPin.length < 4) {
+        enteredPin += val;
+        updatePinDisplay();
+      }
+    }
+
+    // Standard clearing
+    function clearPin() {
+      enteredPin = "";
+      updatePinDisplay();
+      document.getElementById('login-error-msg').textContent = "";
+    }
+
+    function updatePinDisplay() {
+      const dots = document.getElementById('passcode-dots').children;
+      for (let i = 0; i < 4; i++) {
+        if (i < enteredPin.length) {
+          dots[i].className = "w-4 h-4 rounded-full bg-indigo-600 scale-110 transition-all duration-150";
+        } else {
+          dots[i].className = "w-4 h-4 rounded-full bg-slate-200 transition-all duration-150";
+        }
+      }
+    }
+
+    function verifyPin() {
+      if (enteredPin === "2026") {
+        currentUserRole = 'staff';
+        completeLogin();
+      } else if (enteredPin === "8888") {
+        currentUserRole = 'admin';
+        completeLogin();
+      } else {
+        document.getElementById('login-error-msg').textContent = "Incorrect Pin. Please try again.";
+        enteredPin = "";
+        updatePinDisplay();
+      }
+    }
+
+    function completeLogin() {
+      document.getElementById('login-gateway').classList.add('opacity-0', 'pointer-events-none');
+      document.getElementById('main-app').classList.remove('hidden');
+      document.getElementById('main-app').classList.add('flex');
+      
+      const badge = document.getElementById('role-badge');
+      const settingsBtn = document.getElementById('btn-settings');
+
+      if (currentUserRole === 'admin') {
+        badge.textContent = "Administrator";
+        badge.className = "ml-2 text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-bold border border-indigo-100 uppercase";
+        settingsBtn.classList.remove('hidden');
+      } else {
+        badge.textContent = "Staff Desk";
+        badge.className = "ml-2 text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-bold border border-slate-200 uppercase";
+        settingsBtn.classList.add('hidden');
+      }
+
+      loadAllData();
+      showToast("Access granted. Operational grid synchronized.");
+    }
+
+    function logout() {
+      currentUserRole = null;
+      enteredPin = "";
+      updatePinDisplay();
+      document.getElementById('login-error-msg').textContent = "";
+      document.getElementById('login-gateway').classList.remove('opacity-0', 'pointer-events-none');
+      document.getElementById('main-app').classList.add('hidden');
+    }
+
+    // System Data State
+    let state = {
+      bookings: [],
+      expenses: [],
+      rooms: [],
+      handovers: [],
+      metrics: { activeCheckins: 0, totalEarnings: '0.00', totalExpenses: '0.00', netProfit: '0.00' },
+      settings: { INVOICE_TEMPLATE_DOC_ID: '', INVOICES_FOLDER_ID: '' }
+    };
+
+    // Tab switcher layout controller
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById('section-' + tabId).classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-50', 'text-indigo-600');
+        btn.classList.add('text-slate-600', 'hover:bg-slate-100');
+      });
+
+      const activeBtn = document.getElementById('btn-' + tabId);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-600', 'hover:bg-slate-100');
+        activeBtn.classList.add('bg-indigo-50', 'text-indigo-600');
+      }
+    }
+
+    // Modern custom toast utility
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `p-4 rounded-xl shadow-lg border text-sm flex items-center space-x-3 pointer-events-auto transition duration-300 transform translate-x-12 opacity-0 bg-white ${
+        type === 'success' ? 'border-emerald-100 text-emerald-800' : 'border-rose-100 text-rose-800'
+      }`;
+      
+      const icon = type === 'success' ? 'check-circle' : 'alert-circle';
+      toast.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0 ${type === 'success' ? 'text-emerald-500' : 'text-rose-500'}"></i><div>${message}</div>`;
+      
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      // Trigger transition animation
+      setTimeout(() => {
+        toast.classList.remove('translate-x-12', 'opacity-0');
+      }, 50);
+
+      // Dismiss timer
+      setTimeout(() => {
+        toast.classList.add('translate-x-12', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // Load API data from Apps Script backend
+    function loadAllData() {
+      showDashboardLoader(true);
+      
+      // Auto-set modern system dates
+      const todayString = new Date().toISOString().split('T')[0];
+      document.getElementById('b-checkin').value = todayString;
+      document.getElementById('b-checkout').value = todayString;
+      document.getElementById('e-date').value = todayString;
+
+      google.script.run.withSuccessHandler(function(bookings) {
+        state.bookings = bookings;
+        renderBookings();
+        
+        // Load Metrics once bookings are populated
+        google.script.run.withSuccessHandler(function(metrics) {
+          state.metrics = metrics;
+          updateDashboardMetrics();
+          showDashboardLoader(false);
+        }).getDashboardMetrics();
+
+      }).getBookings();
+
+      google.script.run.withSuccessHandler(function(expenses) {
+        state.expenses = expenses;
+        renderExpenses();
+      }).getExpenses();
+
+      google.script.run.withSuccessHandler(function(settings) {
+        state.settings = settings;
+        document.getElementById('set-template-id').value = settings.INVOICE_TEMPLATE_DOC_ID || '';
+        document.getElementById('set-folder-id').value = settings.INVOICES_FOLDER_ID || '';
+      }).fetchSettings();
+
+      google.script.run.withSuccessHandler(function(rooms) {
+        state.rooms = rooms;
+        renderRoomsGrid();
+      }).getRooms();
+
+      google.script.run.withSuccessHandler(function(handovers) {
+        state.handovers = handovers;
+        renderHandovers();
+      }).getHandovers();
+    }
+
+    function showDashboardLoader(show) {
+      const loader = document.getElementById('loader-dashboard');
+      const container = document.getElementById('dashboard-bookings-container');
+      const loaderExp = document.getElementById('loader-expenses');
+      const containerExp = document.getElementById('expenses-container');
+
+      if (show) {
+        loader.classList.remove('hidden');
+        container.classList.add('hidden');
+        loaderExp.classList.remove('hidden');
+        containerExp.classList.add('hidden');
+      } else {
+        loader.classList.add('hidden');
+        container.classList.remove('hidden');
+        loaderExp.classList.add('hidden');
+        containerExp.classList.remove('hidden');
+      }
+    }
+
+    // Update Overview Metric Cards in INR
+    function updateDashboardMetrics() {
+      document.getElementById('m-active-checkins').textContent = state.metrics.activeCheckins;
+      document.getElementById('m-total-earnings').textContent = '₹' + parseFloat(state.metrics.totalEarnings).toLocaleString('en-IN');
+      document.getElementById('m-total-expenses').textContent = '₹' + parseFloat(state.metrics.totalExpenses).toLocaleString('en-IN');
+      
+      const profitEl = document.getElementById('m-net-profit');
+      profitEl.textContent = '₹' + parseFloat(state.metrics.netProfit).toLocaleString('en-IN');
+      if (parseFloat(state.metrics.netProfit) < 0) {
+        profitEl.className = 'text-2xl font-bold text-rose-600';
+      } else {
+        profitEl.className = 'text-2xl font-bold text-emerald-600';
+      }
+    }
+
+    // Render interactive room grid
+    function renderRoomsGrid() {
+      const grid = document.getElementById('rooms-grid');
+      grid.innerHTML = '';
+
+      state.rooms.forEach(room => {
+        let bgClass = "bg-emerald-50 border-emerald-100 text-emerald-800";
+        let statusText = "Ready";
+        if (room.status === "occupied") {
+          bgClass = "bg-amber-50 border-amber-100 text-amber-800";
+          statusText = "Occupied";
+        } else if (room.status === "dirty") {
+          bgClass = "bg-rose-50 border-rose-100 text-rose-800";
+          statusText = "Dirty";
+        }
+
+        const card = document.createElement('div');
+        card.className = `${bgClass} border rounded-xl p-3 flex flex-col justify-between h-20 shadow-sm transition duration-150 cursor-pointer hover:shadow-md`;
+        card.setAttribute('onclick', `cycleRoomStatus('${room.number}', '${room.status}')`);
+        card.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Room</span>
+            <span class="text-lg font-extrabold tracking-tight">${room.number}</span>
+          </div>
+          <div class="flex items-center space-x-1.5 mt-2">
+            <span class="w-2 h-2 rounded-full ${room.status === 'ready' ? 'bg-emerald-500' : room.status === 'occupied' ? 'bg-amber-500' : 'bg-rose-500'}"></span>
+            <span class="text-[10px] font-bold uppercase tracking-wider">${statusText}</span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function cycleRoomStatus(number, currentStatus) {
+      let nextStatus = "ready";
+      if (currentStatus === "ready") {
+        nextStatus = "occupied";
+      } else if (currentStatus === "occupied") {
+        nextStatus = "dirty";
+      } else if (currentStatus === "dirty") {
+        nextStatus = "ready";
+      }
+
+      google.script.run.withSuccessHandler(function(res) {
+        if (res.success) {
+          const room = state.rooms.find(r => r.number === number);
+          if (room) room.status = nextStatus;
+          renderRoomsGrid();
+          showToast(`Room ${number} status updated to ${nextStatus}.`);
+        }
+      }).updateRoom(number, nextStatus);
+    }
+
+    // Real-time WhatsApp text parsing (Extracts Guest details instantly on keypress)
+    function parseWhatsAppText() {
+      const text = document.getElementById('wa-paste-area').value;
+      if (!text) return;
+
+      // Extract Name
+      const nameMatch = text.match(/(?:Guest|Name|Person):\s*([A-Za-z\s]+)(?:\n|,|$)/i);
+      if (nameMatch && nameMatch[1]) {
+        document.getElementById('b-guest').value = nameMatch[1].trim();
+      }
+
+      // Extract Checkin Date (Formats: DD-MM-YYYY, DD/MM/YYYY, or Month words)
+      const dateRegexes = [
+        /(?:checkin|check-in|in|date):\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i,
+        /(?:checkin|check-in|in):\s*([0-9]{2}[-/][0-9]{2}[-/][0-9]{4})/i
+      ];
+
+      for (let regex of dateRegexes) {
+        const checkinMatch = text.match(regex);
+        if (checkinMatch && checkinMatch[1]) {
+          let rawDate = checkinMatch[1];
+          if (rawDate.includes('/')) rawDate = rawDate.replace(/\//g, '-');
+          // Handle standard HTML input formats
+          if (rawDate.match(/^[0-9]{2}-[0-9]{2}-[0-9]{4}$/)) {
+            const parts = rawDate.split('-');
+            rawDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          }
+          document.getElementById('b-checkin').value = rawDate;
+        }
+      }
+
+      // Extract Company
+      const companyMatch = text.match(/(?:company|corp|source|co):\s*([A-Za-z0-9\s]+)(?:\n|,|$)/i);
+      if (companyMatch && companyMatch[1]) {
+        document.getElementById('b-company').value = companyMatch[1].trim();
+      }
+
+      // Extract Note
+      const noteMatch = text.match(/(?:note|notes|req|special):\s*([A-Za-z0-9\s,.]+)(?:\n|,|$)/i);
+      if (noteMatch && noteMatch[1]) {
+        document.getElementById('b-note').value = noteMatch[1].trim();
+      }
+    }
+
+    // WhatsApp Greeting Clipboard copier
+    function copyWhatsAppGreeting(id, guestName, checkIn, checkOut) {
+      const greeting = `Namaste ${guestName}! 🙏\n\nYour room booking at SuiteFlow is successfully confirmed!\n🔑 *Booking ID:* ${id}\n📅 *Check-In:* ${checkIn}\n📅 *Check-Out:* ${checkOut}\n\nWe look forward to hosting you. Safe travels! 🚗✨`;
+      
+      // Legacy Clipboard copy guard compatibility for sandboxed frames
+      const textarea = document.createElement('textarea');
+      textarea.value = greeting;
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast("WhatsApp greeting message copied to clipboard!");
+      } catch (e) {
+        showToast("Unable to copy automatically.", "error");
+      }
+      document.body.removeChild(textarea);
+    }
+
+    // Render active checked-in list & historical logs in INR
+    function renderBookings() {
+      const activeTable = document.getElementById('dashboard-bookings-table');
+      const fullTable = document.getElementById('full-bookings-table');
+      const emptyState = document.getElementById('dash-empty-state');
+      
+      activeTable.innerHTML = '';
+      fullTable.innerHTML = '';
+
+      const activeList = state.bookings.filter(b => b.Status === 'Checked-In');
+      
+      if (activeList.length === 0) {
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+        activeList.forEach(booking => {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-slate-50/80 transition';
+          row.innerHTML = `
+            <td class="py-3 px-4">
+              <div class="font-bold text-slate-950">${booking.GuestName}</div>
+              <div class="text-xs text-indigo-600 font-bold">${booking.ID}</div>
+            </td>
+            <td class="py-3 px-4">
+              <div class="text-xs font-bold text-slate-700">${booking.CheckIn} to ${booking.CheckOut}</div>
+              <div class="text-xs text-slate-400">Total operational stay</div>
+            </td>
+            <td class="py-3 px-4 max-w-xs truncate text-slate-500 text-xs">${booking.Note || '<span class="text-slate-300">No notes</span>'}</td>
+            <td class="py-3 px-4 text-right space-x-2">
+              <button onclick="copyWhatsAppGreeting('${booking.ID}', '${booking.GuestName.replace(/'/g, "\\'")}', '${booking.CheckIn}', '${booking.CheckOut}')" class="px-3 py-1.5 text-xs font-bold bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition inline-flex items-center space-x-1">
+                <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">WhatsApp Greeting</span>
+              </button>
+              <button onclick="openCheckoutModal('${booking.ID}', '${booking.GuestName.replace(/'/g, "\\'")}')" class="px-3.5 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition shadow-sm">
+                Checkout
+              </button>
+            </td>
+          `;
+          activeTable.appendChild(row);
+        });
+      }
+
+      // Render Historical Tab Records
+      state.bookings.forEach(booking => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-slate-50/50 transition';
+        
+        let statusBadge = '';
+        if (booking.Status === 'Checked-In') {
+          statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">Checked-In</span>';
+        } else {
+          statusBadge = '<span class="px-2 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100">Paid & Done</span>';
+        }
+
+        row.innerHTML = `
+          <td class="py-3.5 px-4 font-semibold text-indigo-600">${booking.ID}</td>
+          <td class="py-3.5 px-4 font-semibold text-slate-900">${booking.GuestName}</td>
+          <td class="py-3.5 px-4 text-slate-600">${booking.CheckIn} to ${booking.CheckOut}</td>
+          <td class="py-3.5 px-4 text-slate-500">${booking.Company || 'N/A'}</td>
+          <td class="py-3.5 px-4 font-bold text-slate-900">${booking.TotalAmount ? '₹' + parseFloat(booking.TotalAmount).toLocaleString('en-IN') : '₹0.00'}</td>
+          <td class="py-3.5 px-4">${statusBadge}</td>
+        `;
+        fullTable.appendChild(row);
+      });
+
+      lucide.createIcons();
+    }
+
+    // Render expense lists in INR
+    function renderExpenses() {
+      const table = document.getElementById('expenses-table');
+      const emptyState = document.getElementById('exp-empty-state');
+      table.innerHTML = '';
+
+      if (state.expenses.length === 0) {
+        emptyState.classList.remove('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+        state.expenses.forEach(exp => {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-slate-50/50 transition';
+          row.innerHTML = `
+            <td class="py-3 px-4 font-semibold text-slate-500">${exp.Date}</td>
+            <td class="py-3 px-4">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">${exp.Category}</span>
+            </td>
+            <td class="py-3 px-4 text-slate-600 max-w-sm truncate">${exp.Description || 'N/A'}</td>
+            <td class="py-3 px-4 text-right font-extrabold text-rose-600">-₹${parseFloat(exp.Amount).toLocaleString('en-IN')}</td>
+          `;
+          table.appendChild(row);
+        });
+      }
+    }
+
+    // Render Shift Handover Logboard Notes
+    function renderHandovers() {
+      const feed = document.getElementById('handover-notes-feed');
+      feed.innerHTML = '';
+
+      if (state.handovers.length === 0) {
+        feed.innerHTML = '<div class="text-center py-6 text-slate-400">No shift updates left yet. Be the first to leave handover notes.</div>';
+        return;
+      }
+
+      state.handovers.forEach(note => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-50 border border-slate-150 rounded-2xl p-4 shadow-sm hover:border-slate-300 transition duration-150";
+        card.innerHTML = `
+          <div class="flex justify-between items-center mb-2.5">
+            <span class="text-xs font-bold text-slate-900 bg-slate-200/60 px-2.5 py-1 rounded-lg">${note.author}</span>
+            <span class="text-[10px] font-semibold text-slate-400 flex items-center space-x-1">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+              <span>${note.time}</span>
+            </span>
+          </div>
+          <p class="text-xs text-slate-700 leading-relaxed font-medium whitespace-pre-line">${note.message}</p>
+        `;
+        feed.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    // Submit a New Booking
+    function handleBookingSubmit(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('btn-save-booking');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> <span>Saving...</span>';
+
+      const booking = {
+        guestName: document.getElementById('b-guest').value,
+        checkIn: document.getElementById('b-checkin').value,
+        checkOut: document.getElementById('b-checkout').value,
+        company: document.getElementById('b-company').value,
+        note: document.getElementById('b-note').value
+      };
+
+      google.script.run.withSuccessHandler(function(res) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> <span>Confirm Live Registration</span>';
+        lucide.createIcons();
+
+        if (res.success) {
+          showToast('Guest registered successfully!');
+          document.getElementById('booking-form').reset();
+          document.getElementById('wa-paste-area').value = '';
+          loadAllData();
+        } else {
+          showToast('Failed saving booking: ' + res.error, 'error');
+        }
+      }).saveBooking(booking);
+    }
+
+    // Submit an Expense Entry
+    function handleExpenseSubmit(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('btn-save-expense');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> <span>Logging...</span>';
+
+      const expense = {
+        date: document.getElementById('e-date').value,
+        category: document.getElementById('e-category').value,
+        amount: document.getElementById('e-amount').value,
+        description: document.getElementById('e-description').value
+      };
+
+      google.script.run.withSuccessHandler(function(res) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i> <span>Log Expense Entry</span>';
+        lucide.createIcons();
+
+        if (res.success) {
+          showToast('Expense entry committed successfully!');
+          document.getElementById('expense-form').reset();
+          loadAllData();
+        } else {
+          showToast('Failed logging expense: ' + res.error, 'error');
+        }
+      }).saveExpense(expense);
+    }
+
+    // Submit Handover Bulletin
+    function handleHandoverSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-save-handover');
+      const message = document.getElementById('h-message').value;
+      btn.disabled = true;
+
+      google.script.run.withSuccessHandler(function(res) {
+        btn.disabled = false;
+        if (res.success) {
+          showToast("Handover logged. Shift synced successfully!");
+          document.getElementById('handover-form').reset();
+          loadAllData();
+        } else {
+          showToast("Error saving handover bulletin.", "error");
+        }
+      }).saveHandover(message);
+    }
+
+    // Open Checkout Processing Modal
+    function openCheckoutModal(id, guestName) {
+      document.getElementById('checkout-booking-id').value = id;
+      document.getElementById('checkout-guest-name').textContent = guestName;
+      document.getElementById('checkout-room').value = '';
+      document.getElementById('checkout-extra').value = '';
+      
+      const modal = document.getElementById('checkout-modal');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.firstElementChild.classList.remove('scale-95');
+      }, 50);
+    }
+
+    function closeCheckoutModal() {
+      const modal = document.getElementById('checkout-modal');
+      modal.firstElementChild.classList.add('scale-95');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 150);
+    }
+
+    // Handle Checkout / Generate Invoice PDF Automation
+    function handleCheckoutSubmit(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById('btn-process-checkout');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> <span>Processing Checkout Invoice...</span>';
+
+      const checkoutData = {
+        id: document.getElementById('checkout-booking-id').value,
+        roomCharge: document.getElementById('checkout-room').value || 0,
+        extraCharge: document.getElementById('checkout-extra').value || 0
+      };
+
+      google.script.run.withSuccessHandler(function(res) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i data-lucide="file-text" class="w-4 h-4"></i> <span>Generate PDF Invoice</span>';
+        lucide.createIcons();
+
+        if (res.success) {
+          showToast(res.message);
+          closeCheckoutModal();
+          loadAllData();
+          
+          if (res.pdfUrl && res.pdfUrl !== 'https://docs.google.com') {
+            window.open(res.pdfUrl, '_blank');
+          }
+        } else {
+          showToast('Checkout process failed: ' + res.error, 'error');
+        }
+      }).checkoutAndGenerateInvoice(checkoutData);
+    }
+
+    // Handle settings adjustments
+    function handleSettingsSubmit(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('btn-save-settings');
+      saveBtn.disabled = true;
+      
+      const settings = {
+        INVOICE_TEMPLATE_DOC_ID: document.getElementById('set-template-id').value,
+        INVOICES_FOLDER_ID: document.getElementById('set-folder-id').value
+      };
+
+      google.script.run.withSuccessHandler(function(res) {
+        saveBtn.disabled = false;
+        if (res.success) {
+          showToast('Template configuration mappings saved!');
+          loadAllData();
+        } else {
+          showToast('Failed updating settings: ' + res.error, 'error');
+        }
+      }).saveSettings(settings);
+    }
+
+    // Live search filter
+    function filterBookings() {
+      const q = document.getElementById('search-bookings').value.toLowerCase();
+      const rows = document.getElementById('full-bookings-table').getElementsByTagName('tr');
+      for (let row of rows) {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+      }
+    }
+
+    // Initialize application dependencies on start (Requires PIN first)
+    window.onload = function() {
+      lucide.createIcons();
+    };
+  </script>
+</body>
+</html>
