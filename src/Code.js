@@ -4,6 +4,7 @@
  * Housekeeping, Shift Handover logging, and Automated checkout PDF compiling.
  */
 
+
 // 1. WEB APP ENTRY POINT
 function doGet() {
   return HtmlService.createTemplateFromFile('Index')
@@ -12,6 +13,7 @@ function doGet() {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
+
 
 // 2. CONFIGURATION & AUTO-INITIALIZATION OF DATABASE
 function getActiveDatabase() {
@@ -68,6 +70,7 @@ function getActiveDatabase() {
   return ss;
 }
 
+
 // 3. SETTINGS MANIPULATION
 function getSetting(key) {
   const ss = getActiveDatabase();
@@ -106,6 +109,7 @@ function saveSettings(settings) {
     return { success: false, error: e.toString() };
   }
 }
+
 
 // 4. CRUD: BOOKINGS
 function getBookings() {
@@ -157,6 +161,7 @@ function saveBooking(booking) {
   }
 }
 
+
 // 5. CRUD: HOUSEKEEPING GRID
 function getRooms() {
   const ss = getActiveDatabase();
@@ -191,6 +196,7 @@ function updateRoom(roomNumber, status) {
     return { success: false, error: e.toString() };
   }
 }
+
 
 // 6. CRUD: DAILY EXPENSES
 function getExpenses() {
@@ -236,6 +242,7 @@ function saveExpense(expense) {
   }
 }
 
+
 // 7. CRUD: SHIFT HANDOVER LOGS
 function getHandovers() {
   const ss = getActiveDatabase();
@@ -276,6 +283,7 @@ function saveHandover(message) {
   }
 }
 
+
 // 8. METRICS FOR MAIN OVERVIEW CARD
 function getDashboardMetrics() {
   try {
@@ -301,6 +309,7 @@ function getDashboardMetrics() {
     return { activeCheckins: 0, totalEarnings: '0.00', totalExpenses: '0.00', netProfit: '0.00' };
   }
 }
+
 
 // 9. COPIES GOOGLE DOC TEMPLATE -> POPULATES DATA -> GENERATES INVOICE PDF
 function checkoutAndGenerateInvoice(checkoutData) {

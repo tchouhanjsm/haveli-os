@@ -7,7 +7,7 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
@@ -518,6 +518,7 @@
 
   <!-- CLIENT-SIDE CONTROLLER CODE -->
   <script>
+
     // Local In-Memory Mock Database
     let mockDatabase = {
       bookings: [
@@ -688,6 +689,7 @@
       };
     }
 
+
     // Passcode validation
     function pressPin(val) {
       if (enteredPin.length < 4) {
@@ -769,6 +771,7 @@
       settings: { INVOICE_TEMPLATE_DOC_ID: '', INVOICES_FOLDER_ID: '' }
     };
 
+
     // Tab switcher layout controller
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -811,6 +814,7 @@
         setTimeout(() => toast.remove(), 300);
       }, 4000);
     }
+
 
     // Load API data from Apps Script backend
     function loadAllData() {
@@ -891,6 +895,7 @@
       }
     }
 
+
     // Render interactive room grid
     function renderRoomsGrid() {
       const grid = document.getElementById('rooms-grid');
@@ -943,6 +948,7 @@
         }
       }).updateRoom(number, nextStatus);
     }
+
 
     // Real-time WhatsApp text parsing (Extracts Guest details instantly on keypress)
     function parseWhatsAppText() {
@@ -1005,6 +1011,7 @@
       }
       document.body.removeChild(textarea);
     }
+
 
     // Render active checked-in list & historical logs in INR
     function renderBookings() {
@@ -1127,6 +1134,7 @@
       });
       lucide.createIcons();
     }
+
 
     // Submit a New Booking
     function handleBookingSubmit(e) {
