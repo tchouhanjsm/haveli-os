@@ -1,77 +1,79 @@
 /**
- * SuiteFlow India - Backend Controller (Google Apps Script)
- * Handles Database initialization, RBAC operations, WhatsApp parsing, 
- * Housekeeping, Shift Handover logging, and Automated checkout PDF compiling.
+ * Hotel Manager & Automation System - Backend
+ * Google Apps Script (GAS) Web App Controller
+ * Integrates native open-source Invoice-Generator API mapped to Garh Jaisal Heritage Layout
  */
 
-
-// 1. WEB APP ENTRY POINT
+// 1. WEB APP ENTRY POINTS
 function doGet() {
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
-    .setTitle('SuiteFlow Operations Hub')
+    .setTitle('Hotel Operations Hub')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
 
-// 2. CONFIGURATION & AUTO-INITIALIZATION OF DATABASE
+// 2. CONFIGURATION & DATABASE SETUP (Initializes sheets automatically)
 function getActiveDatabase() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // Bookings Ledger
+  // Create Bookings Sheet if missing
   let bookingsSheet = ss.getSheetByName('Bookings');
   if (!bookingsSheet) {
     bookingsSheet = ss.insertSheet('Bookings');
     bookingsSheet.appendRow(['ID', 'Guest Name', 'Check-In', 'Check-Out', 'Company', 'Note', 'Status', 'Room Charge', 'Extra Charge', 'Total Amount', 'Created At']);
-    bookingsSheet.getRange(1, 1, 1, 11).setFontWeight('bold').setBackground('#EEF2F6');
+    bookingsSheet.getRange(1, 1, 1, 11).setFontWeight('bold').setBackground('#E2E8F0');
   }
   
-  // Daily Expenses Ledger
+  // Create Expenses Sheet if missing
   let expensesSheet = ss.getSheetByName('Expenses');
   if (!expensesSheet) {
     expensesSheet = ss.insertSheet('Expenses');
     expensesSheet.appendRow(['ID', 'Date', 'Category', 'Amount', 'Description']);
-    expensesSheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#EEF2F6');
+    expensesSheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#E2E8F0');
   }
 
-  // Room Grid Table (Housekeeping status storage)
-  let roomsSheet = ss.getSheetByName('Rooms');
-  if (!roomsSheet) {
-    roomsSheet = ss.insertSheet('Rooms');
-    roomsSheet.appendRow(['Room Number', 'Status']);
-    // Seed standard hotel rooms
-    const standardRooms = [
-      ['101', 'ready'], ['102', 'ready'], ['103', 'ready'], ['104', 'ready'],
-      ['201', 'ready'], ['202', 'ready'], ['203', 'ready'], ['204', 'ready']
-    ];
-    roomsSheet.getRange(2, 1, standardRooms.length, 2).setValues(standardRooms);
-    roomsSheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#EEF2F6');
-  }
-
-  // Digital Shift Handover Bulletins
-  let handoversSheet = ss.getSheetByName('Handovers');
-  if (!handoversSheet) {
-    handoversSheet = ss.insertSheet('Handovers');
-    handoversSheet.appendRow(['ID', 'Author', 'Timestamp', 'Message']);
-    handoversSheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#EEF2F6');
-  }
-
-  // Dynamic Settings Store
+  // Create Settings Sheet for template configurations
   let settingsSheet = ss.getSheetByName('Settings');
   if (!settingsSheet) {
     settingsSheet = ss.insertSheet('Settings');
     settingsSheet.appendRow(['Key', 'Value', 'Instructions']);
-    settingsSheet.appendRow(['INVOICE_TEMPLATE_DOC_ID', '', 'Paste Google Doc Invoice Template ID here']);
+    settingsSheet.appendRow(['INVOICE_GENERATOR_API_URL', 'https://invoice-generator.com', 'API Endpoint (Change if self-hosting)']);
     settingsSheet.appendRow(['INVOICES_FOLDER_ID', '', 'Paste Google Drive Folder ID here for saved PDFs']);
-    settingsSheet.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#EEF2F6');
+    settingsSheet.appendRow(['HOTEL_BILLING_NAME', 'Hotel Garh Jaisal Haveli', 'Your Hotel Name for Bills']);
+    settingsSheet.appendRow(['HOTEL_ADDRESS', 'Inside Fort Kotari Para,\nJaisalmer, Rajasthan, 345001', 'Multiline address info']);
+    settingsSheet.appendRow(['HOTEL_GSTIN', '08AGHPC9718Q2ZP', 'Your Hotel GST Number']);
+    settingsSheet.appendRow(['HOTEL_EMAIL', 'mukeshkila@yahoo.com', 'Contact Email']);
+    settingsSheet.appendRow(['HOTEL_PHONE', '+91-7727-047-567', 'Contact Phone']);
+    settingsSheet.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#E2E8F0');
+  }
+
+  // Create Housekeeping Rooms state if missing
+  let roomsSheet = ss.getSheetByName('Rooms');
+  if (!roomsSheet) {
+    roomsSheet = ss.insertSheet('Rooms');
+    roomsSheet.appendRow(['Room Number', 'Status']);
+    const rooms = ['101', '102', '103', '104', '201', '202', '203', '204'];
+    rooms.forEach(r => roomsSheet.appendRow([r, 'ready']));
+    roomsSheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#E2E8F0');
+  }
+
+  // Create Shift Handover log sheet if missing
+  let handoverSheet = ss.getSheetByName('Handovers');
+  if (!handoverSheet) {
+    handoverSheet = ss.insertSheet('Handovers');
+    handoverSheet.appendRow(['ID', 'Author', 'Timestamp', 'Message']);
+    handoverSheet.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#E2E8F0');
   }
 
   return ss;
 }
 
-
-// 3. SETTINGS MANIPULATION
+// Helper to query settings
 function getSetting(key) {
   const ss = getActiveDatabase();
   const sheet = ss.getSheetByName('Settings');
@@ -84,34 +86,7 @@ function getSetting(key) {
   return '';
 }
 
-function fetchSettings() {
-  return {
-    INVOICE_TEMPLATE_DOC_ID: getSetting('INVOICE_TEMPLATE_DOC_ID'),
-    INVOICES_FOLDER_ID: getSetting('INVOICES_FOLDER_ID')
-  };
-}
-
-function saveSettings(settings) {
-  try {
-    const ss = getActiveDatabase();
-    const sheet = ss.getSheetByName('Settings');
-    const data = sheet.getDataRange().getValues();
-    
-    for (let key in settings) {
-      for (let i = 1; i < data.length; i++) {
-        if (data[i][0] === key) {
-          sheet.getRange(i + 1, 2).setValue(settings[key]);
-        }
-      }
-    }
-    return { success: true };
-  } catch (e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
-
-// 4. CRUD: BOOKINGS
+// 3. CRUD BOOKINGS
 function getBookings() {
   const ss = getActiveDatabase();
   const sheet = ss.getSheetByName('Bookings');
@@ -130,9 +105,11 @@ function getBookings() {
       }
       booking[headers[j].replace(/\s+/g, '')] = value;
     }
+    booking.rowNumber = i + 1;
     bookings.push(booking);
   }
-  return bookings.reverse(); // Return newest first
+  
+  return bookings.reverse();
 }
 
 function saveBooking(booking) {
@@ -149,20 +126,19 @@ function saveBooking(booking) {
       booking.company || 'N/A',
       booking.note || '',
       'Checked-In',
-      0, // Base Room Cost
-      0, // Extras (Laundry/Food)
-      0, // Total Invoice Amount
+      0,
+      0,
+      0,
       new Date()
     ]);
     
-    return { success: true, id: id };
-  } catch (e) {
-    return { success: false, error: e.toString() };
+    return { success: true, message: 'Booking created successfully!', id: id };
+  } catch (error) {
+    return { success: false, error: error.toString() };
   }
 }
 
-
-// 5. CRUD: HOUSEKEEPING GRID
+// 4. HOUSEKEEPING ROOM LOGIC
 function getRooms() {
   const ss = getActiveDatabase();
   const sheet = ss.getSheetByName('Rooms');
@@ -179,26 +155,204 @@ function getRooms() {
   return rooms;
 }
 
-function updateRoom(roomNumber, status) {
+function updateRoom(number, status) {
   try {
     const ss = getActiveDatabase();
     const sheet = ss.getSheetByName('Rooms');
     const data = sheet.getDataRange().getValues();
-    
     for (let i = 1; i < data.length; i++) {
-      if (data[i][0].toString() === roomNumber.toString()) {
+      if (data[i][0].toString() === number.toString()) {
         sheet.getRange(i + 1, 2).setValue(status);
-        break;
+        return { success: true };
       }
     }
+    return { success: false, error: "Room not found." };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+// 5. SHIFT HANDOVER BULLETIN LOGIC
+function getHandovers() {
+  const ss = getActiveDatabase();
+  const sheet = ss.getSheetByName('Handovers');
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+  
+  const handovers = [];
+  for (let i = 1; i < data.length; i++) {
+    handovers.push({
+      id: data[i][0],
+      author: data[i][1],
+      time: data[i][2],
+      message: data[i][3]
+    });
+  }
+  return handovers.reverse();
+}
+
+function saveHandover(message) {
+  try {
+    const ss = getActiveDatabase();
+    const sheet = ss.getSheetByName('Handovers');
+    const id = 'HO-' + Math.floor(100 + Math.random() * 900);
+    const author = 'Duty Staff';
+    const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd hh:mm a');
+    
+    sheet.appendRow([id, author, timestamp, message]);
     return { success: true };
   } catch (e) {
     return { success: false, error: e.toString() };
   }
 }
 
+// 6. CHECKOUT AND INSTANT PDF GENERATION (Replicates Garh Jaisal Heritage Layout)
+function checkoutAndGenerateInvoice(checkoutData) {
+  try {
+    const ss = getActiveDatabase();
+    const sheet = ss.getSheetByName('Bookings');
+    const data = sheet.getDataRange().getValues();
+    let rowNum = -1;
+    let bRecord = {};
 
-// 6. CRUD: DAILY EXPENSES
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === checkoutData.id) {
+        rowNum = i + 1;
+        bRecord = {
+          id: data[i][0],
+          guestName: data[i][1],
+          checkIn: Utilities.formatDate(new Date(data[i][2]), Session.getScriptTimeZone(), 'MMM dd, yyyy'),
+          checkOut: Utilities.formatDate(new Date(data[i][3]), Session.getScriptTimeZone(), 'MMM dd, yyyy'),
+          company: data[i][4] || 'N/A',
+          note: data[i][5] || ''
+        };
+        break;
+      }
+    }
+
+    if (rowNum === -1) {
+      throw new Error("Booking Record not found matching ID: " + checkoutData.id);
+    }
+
+    // Days Count Calculation
+    const checkInDate = new Date(bRecord.checkIn);
+    const checkOutDate = new Date(bRecord.checkOut);
+    const diffTime = Math.abs(checkOutDate - checkInDate);
+    const nightsCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+
+    const baseRoomRate = parseFloat(checkoutData.roomCharge);
+    const totalBeforeTax = baseRoomRate + parseFloat(checkoutData.extraCharge);
+    
+    // We auto-apportion a 12% standard GST calculation as shown in your image
+    const gstRatePercent = 12; 
+    const totalWithTax = totalBeforeTax * (1 + (gstRatePercent / 100));
+
+    // Commit final calculated state back to Google Sheets database
+    sheet.getRange(rowNum, 7).setValue('Checked-Out-Invoiced');
+    sheet.getRange(rowNum, 8).setValue(checkoutData.roomCharge);
+    sheet.getRange(rowNum, 9).setValue(checkoutData.extraCharge);
+    sheet.getRange(rowNum, 10).setValue(totalWithTax);
+
+    // Retrieve custom settings properties
+    const apiUrl = getSetting('INVOICE_GENERATOR_API_URL') || 'https://invoice-generator.com';
+    const targetFolderId = getSetting('INVOICES_FOLDER_ID');
+    const hotelName = getSetting('HOTEL_BILLING_NAME') || 'Hotel Garh Jaisal Haveli';
+    const hotelAddress = getSetting('HOTEL_ADDRESS') || 'Inside Fort Kotari Para,\nJaisalmer, Rajasthan, 345001';
+    const hotelGstin = getSetting('HOTEL_GSTIN') || '08AGHPC9718Q2ZP';
+    const hotelEmail = getSetting('HOTEL_EMAIL') || 'mukeshkila@yahoo.com';
+    const hotelPhone = getSetting('HOTEL_PHONE') || '+91-7727-047-567';
+
+    if (!targetFolderId) {
+      return { 
+        success: true, 
+        message: 'Checkout complete in database! Invoice PDF skipped (Target Google Drive Folder ID missing in settings).'
+      };
+    }
+
+    const invoiceNum = bRecord.id.replace('BK-', '');
+    const todayFormatted = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'MMM dd, yyyy');
+
+    // 1. Construct customized JSON payload to match the image structure
+    const invoicePayload = {
+      logo: "https://i.imgur.com/vjWn08z.jpeg", // Web hosted Jaisalmer Fort/Hotel logo URL
+      from: `${hotelName}\n${hotelAddress}`,
+      to: bRecord.company !== 'N/A' ? bRecord.company : bRecord.guestName,
+      ship_to_title: "Address",
+      ship_to: bRecord.company !== 'N/A' ? `Guest Contact: ${bRecord.guestName}\nStay Duration Details` : "Direct Walk-In Guest Details",
+      number: invoiceNum,
+      date: todayFormatted,
+      currency: "INR",
+      payment_terms: "Immediate",
+      custom_fields: [
+        { "name": "GJ GSTIN", "value": hotelGstin },
+        { "name": "Checkin Date", "value": bRecord.checkIn },
+        { "name": "Checkout Date", "value": bRecord.checkOut }
+      ],
+      // Override column header titles precisely matching your uploaded template
+      item_header: `${bRecord.guestName} Stay Details`,
+      quantity_header: "Night",
+      unit_cost_header: "Rate",
+      amount_header: "Amount",
+      balance_title: "Balance Due",
+      tax_title: `GST (${gstRatePercent}%)`,
+      fields: {
+        tax: "%",
+        discounts: false,
+        shipping: false
+      },
+      items: [
+        {
+          name: "Heritage Room Stay Accommodation",
+          quantity: nightsCount,
+          unit_cost: baseRoomRate / nightsCount
+        }
+      ],
+      tax: gstRatePercent,
+      amount_paid: totalWithTax, // Full payment assumed at checkout
+      terms_title: "Terms",
+      terms: `- Every tourist will be responsible for abiding by local laws as dictated by local authorities with absolutely no obligations whatsoever on ${hotelName}.\n- No cancellation charges if the reservation is canceled more than 15 days prior to arrival. Bank charges are applicable in case of any refund.\n- The above cancellation policy is not valid during long weekends, Christmas, New Year, and during certain other times of the year wherein rooms will be confirmed subject to non-refundable advance.\n- Every guest must show their ID at the time of check-in.\n- For any enquiries or special requests, email us at ${hotelEmail} or call us at ${hotelPhone}`
+    };
+
+    // Include Extra amenities dynamically if logged at checkout
+    if (parseFloat(checkoutData.extraCharge) > 0) {
+      invoicePayload.items.push({
+        name: "Laundry / F&B Amenities / Extra Bed Charges",
+        quantity: 1,
+        unit_cost: parseFloat(checkoutData.extraCharge)
+      });
+    }
+
+    // 2. Transmit HTTP POST Request directly to endpoint API
+    const fetchOptions = {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(invoicePayload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(apiUrl, fetchOptions);
+
+    if (response.getResponseCode() !== 200) {
+      throw new Error(`API failed with response code ${response.getResponseCode()}: ${response.getContentText()}`);
+    }
+
+    // 3. Save raw returned PDF Binary Stream into target Google Drive Folder
+    const pdfBlob = response.getBlob().setName(`Invoice_${invoiceNum}_${bRecord.guestName.replace(/\s+/g, '_')}.pdf`);
+    const targetFolder = DriveApp.getFolderById(targetFolderId);
+    const pdfFile = targetFolder.createFile(pdfBlob);
+
+    return { 
+      success: true, 
+      message: 'Checkout successful! Bill generated via API & archived to Drive folder.', 
+      pdfUrl: pdfFile.getUrl() 
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// 7. EXPENSES LEDGER LOGIC
 function getExpenses() {
   const ss = getActiveDatabase();
   const sheet = ss.getSheetByName('Expenses');
@@ -236,55 +390,13 @@ function saveExpense(expense) {
       expense.description || ''
     ]);
     
-    return { success: true };
-  } catch (e) {
-    return { success: false, error: e.toString() };
+    return { success: true, message: 'Expense tracked successfully!' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
   }
 }
 
-
-// 7. CRUD: SHIFT HANDOVER LOGS
-function getHandovers() {
-  const ss = getActiveDatabase();
-  const sheet = ss.getSheetByName('Handovers');
-  const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return [];
-  
-  const handovers = [];
-  for (let i = 1; i < data.length; i++) {
-    handovers.push({
-      id: data[i][0],
-      author: data[i][1],
-      time: data[i][2],
-      message: data[i][3]
-    });
-  }
-  return handovers.reverse();
-}
-
-function saveHandover(message) {
-  try {
-    const ss = getActiveDatabase();
-    const sheet = ss.getSheetByName('Handovers');
-    const id = 'HO-' + Math.floor(100 + Math.random() * 900);
-    
-    // Explicit Indian Time Zone Formatter for Handover timestamps
-    const timestamp = Utilities.formatDate(new Date(), "Asia/Kolkata", "dd MMM yyyy, hh:mm a");
-    
-    sheet.appendRow([
-      id,
-      "Duty Staff Member",
-      timestamp,
-      message
-    ]);
-    return { success: true };
-  } catch (e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
-
-// 8. METRICS FOR MAIN OVERVIEW CARD
+// 8. METRICS AGGREGATIONS
 function getDashboardMetrics() {
   try {
     const bookings = getBookings();
@@ -310,94 +422,31 @@ function getDashboardMetrics() {
   }
 }
 
-
-// 9. COPIES GOOGLE DOC TEMPLATE -> POPULATES DATA -> GENERATES INVOICE PDF
-function checkoutAndGenerateInvoice(checkoutData) {
+// 9. SETTINGS OPERATIONS
+function saveSettings(settings) {
   try {
     const ss = getActiveDatabase();
-    const sheet = ss.getSheetByName('Bookings');
+    const sheet = ss.getSheetByName('Settings');
     const data = sheet.getDataRange().getValues();
-    let rowNum = -1;
-    let bRecord = {};
-
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === checkoutData.id) {
-        rowNum = i + 1;
-        bRecord = {
-          id: data[i][0],
-          guestName: data[i][1],
-          checkIn: Utilities.formatDate(new Date(data[i][2]), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
-          checkOut: Utilities.formatDate(new Date(data[i][3]), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
-          company: data[i][4] || 'N/A',
-          note: data[i][5] || ''
-        };
-        break;
+    
+    for (let key in settings) {
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === key) {
+          sheet.getRange(i + 1, 2).setValue(settings[key]);
+        }
       }
     }
-
-    if (rowNum === -1) {
-      throw new Error("Target guest ID not found: " + checkoutData.id);
-    }
-
-    const roomRate = parseFloat(checkoutData.roomCharge);
-    const extraRate = parseFloat(checkoutData.extraCharge);
-    const total = roomRate + extraRate;
-
-    // Save financials and status back to Database Sheet
-    sheet.getRange(rowNum, 7).setValue('Checked-Out-Invoiced');
-    sheet.getRange(rowNum, 8).setValue(roomRate);
-    sheet.getRange(rowNum, 9).setValue(extraRate);
-    sheet.getRange(rowNum, 10).setValue(total);
-
-    // Retrieve Document generation settings
-    const templateDocId = getSetting('INVOICE_TEMPLATE_DOC_ID');
-    const targetFolderId = getSetting('INVOICES_FOLDER_ID');
-
-    if (!templateDocId || !targetFolderId) {
-      return { 
-        success: true, 
-        message: 'Checked out in database! Automated PDF invoice generation skipped because Template ID or Folder ID is missing from Setup tab.'
-      };
-    }
-
-    // Connect to target G-Drive Directories
-    const targetFolder = DriveApp.getFolderById(targetFolderId);
-    const templateFile = DriveApp.getFileById(templateDocId);
-    const newDocFile = templateFile.makeCopy(`Invoice_${bRecord.guestName}_${bRecord.id}`, targetFolder);
-    const newDoc = DocumentApp.openById(newDocFile.getId());
-    const body = newDoc.getBody();
-
-    const invoiceNum = bRecord.id.replace('BK-', 'INV-');
-    const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-
-    // Replace designated brackets inside GDoc
-    body.replaceText('{{INVOICE_NUMBER}}', invoiceNum);
-    body.replaceText('{{DATE}}', today);
-    body.replaceText('{{GUEST_NAME}}', bRecord.guestName);
-    body.replaceText('{{COMPANY}}', bRecord.company);
-    body.replaceText('{{CHECKIN}}', bRecord.checkIn);
-    body.replaceText('{{CHECKOUT}}', bRecord.checkOut);
-    body.replaceText('{{ROOM_CHARGE}}', 'Rs. ' + roomRate.toLocaleString('en-IN'));
-    body.replaceText('{{EXTRA_CHARGE}}', 'Rs. ' + extraRate.toLocaleString('en-IN'));
-    body.replaceText('{{TOTAL_AMOUNT}}', 'Rs. ' + total.toLocaleString('en-IN'));
-    body.replaceText('{{NOTES}}', bRecord.note || 'None');
-
-    newDoc.saveAndClose();
-
-    // Compile GDoc dynamically to readable PDF
-    const pdfBlob = newDocFile.getAs(MimeType.PDF);
-    const pdfFile = targetFolder.createFile(pdfBlob);
-    
-    // Trash copy of the temporary Doc file (Leaves GDrive clean)
-    newDocFile.setTrashed(true);
-
-    return { 
-      success: true, 
-      message: 'Checkout complete. PDF generated & archived in G-Drive folder!', 
-      pdfUrl: pdfFile.getUrl() 
-    };
-
-  } catch (error) {
-    return { success: false, error: error.toString() };
+    return { success: true, message: 'Settings saved successfully!' };
+  } catch (e) {
+    return { success: false, error: e.toString() };
   }
+}
+
+function fetchSettings() {
+  return {
+    INVOICE_GENERATOR_API_URL: getSetting('INVOICE_GENERATOR_API_URL'),
+    INVOICES_FOLDER_ID: getSetting('INVOICES_FOLDER_ID'),
+    HOTEL_BILLING_NAME: getSetting('HOTEL_BILLING_NAME'),
+    HOTEL_UPI_ID: getSetting('HOTEL_UPI_ID')
+  };
 }
